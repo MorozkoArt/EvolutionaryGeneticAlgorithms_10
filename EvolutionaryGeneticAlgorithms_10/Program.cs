@@ -10,6 +10,8 @@ namespace EvolutionaryGeneticAlgorithms_10
     {
         static void Main(string[] args)
         {
+            List <string> list = new List<string>();
+            Console.WriteLine(Console.ReadLine());
         }
     }
 }
