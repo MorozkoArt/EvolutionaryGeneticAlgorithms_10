@@ -12,6 +12,7 @@ namespace EvolutionaryGeneticAlgorithms_10
     {
         static void Main(string[] args)
         {
+            // Чтение из файла входных данных
             int n = 0;
             int m = 0;
             List<List<int>> Time_w = new List<List<int>>();
@@ -62,22 +63,26 @@ namespace EvolutionaryGeneticAlgorithms_10
                 
             }
             f.Close();
-            Console.WriteLine($"Колдичество приборов {n}");
-            Console.WriteLine($"Колдичество заявок {m}");
+            // Вывод входных данных
+            Console.WriteLine($"Колдичество приборов: {n}");
+            Console.WriteLine($"Колдичество заявок: {m}");
+            Console.WriteLine("Матрица времен выполнения заявок на приборах: ");
             for (int i = 0; i < n; i++)
             {
                 for (int j = 0; j < m; j++)
                 {
-                    Console.Write(Time_w[i][j] + " ");
+                    Console.Write(String.Format("{0,-4}", Time_w[i][j]));
                 }
                 Console.WriteLine();
             }
             Console.WriteLine();
+            Console.Write("Директивные сроки: ");
             for (int p = 0; p < legislative_deadlines.Count; p++)
             {
                 Console.Write(legislative_deadlines[p] + " ");
             }
             Console.WriteLine("\n");
+            Console.Write("Коэффиценты штрафа: ");
             for (int k = 0; k< penalty_rates.Count; k++)
             {
                 Console.Write(penalty_rates[k] + " ");
