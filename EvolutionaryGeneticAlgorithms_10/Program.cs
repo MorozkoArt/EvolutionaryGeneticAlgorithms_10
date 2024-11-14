@@ -10,22 +10,18 @@ namespace ConsoleApp2
 {
     internal class Program
     {
-        static int populationSize = 500;
+        static int populationSize = 5000;
         static int generations = 1000;
-        static double mutationRate = 0.7;
+        static double mutationRate = 0.6;
         static Random random = new Random();
-
         public static List<List<int>> processingTimes = new List<List<int>>(); // Время обработки (15 заявок, 5 приборов)
         public static List<int> dueDates = new List<int>(); // Директивные сроки
-        static List<int> penalty = new List<int>();
-
+        static List<int> penalty = new List<int>(); // Штрафы
 
         static void Main(string[] args)
         {
-            //Чтение из файла:
             ReadFile();
-            // Вывод входных данных
-            Write();
+            WriteConsole();
             // Генерация начальной популяции
             List<int[]> population = InitializePopulation();
             for (int generation = 0; generation < generations; generation++)
@@ -40,10 +36,11 @@ namespace ConsoleApp2
                     newPopulation.Add(child);
                 }
                 population = newPopulation;
+                
             }
 
             int[] bestSchedule = population.OrderBy(CalculatePenalty).First();
-            int[] ttt = { 12, 6, 11, 13, 8, 0, 1, 2, 3, 4, 5, 7, 9, 10, 14 };
+            int[] InSchedule = { 12, 6, 11, 13, 8, 0, 1, 2, 3, 4, 5, 7, 9, 10, 14 };
             int bestPenalty = CalculatePenalty(bestSchedule);
             for (int i = 0; i < bestSchedule.Length; i++)
             {
@@ -51,8 +48,7 @@ namespace ConsoleApp2
             }
             Console.WriteLine("\n\nBest Schedule: " + string.Join(", ", bestSchedule));
             Console.WriteLine("Total Penalty: " + bestPenalty);
-            Console.WriteLine("hjfghjg: " + CalculatePenalty(ttt));
-            Console.ReadKey();
+            Console.WriteLine("Самое оптимальное значение критерия, как оказалось - нет: " + CalculatePenalty(InSchedule));
         }
         static void ReadFile()
         {
@@ -67,7 +63,6 @@ namespace ConsoleApp2
                 if (s == "PARAM")
                 {
                     s = f.ReadLine();
-                    s.Replace("  ", " ");
                     List<int> param = s.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList();
                     n = param[0]; m = param[1];
                 }
@@ -100,15 +95,13 @@ namespace ConsoleApp2
                         }
                     }
                 }
-
             }
             f.Close();
-
         }
-        static void Write()
+        static void WriteConsole()
         {
-            Console.WriteLine($"Колдичество приборов: {processingTimes[0].Count}");
-            Console.WriteLine($"Колдичество заявок: {processingTimes.Count}");
+            Console.WriteLine($"Количество приборов: {processingTimes.Count}");
+            Console.WriteLine($"Количество заявок: {processingTimes[0].Count}");
             Console.WriteLine("Матрица времен выполнения заявок на приборах: ");
             for (int i = 0; i < processingTimes.Count; i++)
             {
@@ -198,7 +191,7 @@ namespace ConsoleApp2
         {
             int totalPenalty = 0;
             int jobCompletionTime;
-            List<List<ClassOO>> pen = ClassOO.Generation_List(processingTimes);
+            List<List<X_Y>> pen = X_Y.Generation_List(processingTimes);
             for (int i = 0; i < schedule.Length; i++)
             {
                 for (int machine = 0; machine < processingTimes.Count; machine++)
@@ -229,10 +222,8 @@ namespace ConsoleApp2
                 }
                 jobCompletionTime = pen[processingTimes.Count - 1][i].y;
                 // Проверяем, если текущее время превышает срок выполнения
-                if (jobCompletionTime > dueDates[schedule[i]])
-                {
-                    totalPenalty += penalty[schedule[i]] * Math.Max(0, jobCompletionTime - dueDates[schedule[i]]);
-                }
+                totalPenalty += penalty[schedule[i]] * Math.Max(0, jobCompletionTime - dueDates[schedule[i]]);
+                
             }
             return totalPenalty;
         }
