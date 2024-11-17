@@ -10,9 +10,10 @@ namespace ConsoleApp2
 {
     internal class Program
     {
-        static int populationSize = 5000;
-        static int generations = 1000;
-        static double mutationRate = 0.6;
+        static int populationSize = 5000; //5000 или 1000
+        static int generations = 20; // 1000 или 50
+        static double mutationRate = 0.7;
+        static int tournamentSize = 10;
         static Random random = new Random();
         public static List<List<int>> processingTimes = new List<List<int>>(); // Время обработки (15 заявок, 5 приборов)
         public static List<int> dueDates = new List<int>(); // Директивные сроки
@@ -22,7 +23,6 @@ namespace ConsoleApp2
         {
             ReadFile();
             WriteConsole();
-            // Генерация начальной популяции
             List<int[]> population = InitializePopulation();
             for (int generation = 0; generation < generations; generation++)
             {
@@ -30,25 +30,31 @@ namespace ConsoleApp2
                 while (newPopulation.Count < populationSize)
                 {
                     int[] parent1 = SelectParent(population);
-                    int[] parent2 = SelectParent(population);
+                    int[] parent2 = SelectParent(population);                                        
                     int[] child = Crossover(parent1, parent2);
                     Mutate(child);
                     newPopulation.Add(child);
                 }
-                population = newPopulation;
-                
+                population = newPopulation;              
             }
-
             int[] bestSchedule = population.OrderBy(CalculatePenalty).First();
             int[] InSchedule = { 12, 6, 11, 13, 8, 0, 1, 2, 3, 4, 5, 7, 9, 10, 14 };
             int bestPenalty = CalculatePenalty(bestSchedule);
+            int bestPenalty_e_learning = CalculatePenalty(InSchedule);
             for (int i = 0; i < bestSchedule.Length; i++)
             {
                 bestSchedule[i] = bestSchedule[i] + 1;
             }
-            Console.WriteLine("\n\nBest Schedule: " + string.Join(", ", bestSchedule));
-            Console.WriteLine("Total Penalty: " + bestPenalty);
-            Console.WriteLine("Самое оптимальное значение критерия, как оказалось - нет: " + CalculatePenalty(InSchedule));
+            for (int i = 0; i < InSchedule.Length; i++)
+            {
+                InSchedule[i] = InSchedule[i] + 1;
+            }
+            Console.WriteLine($"\n\nЛучшая перестановка: {string.Join(", ", bestSchedule)}");
+            Console.WriteLine($"Значение целевой ф-ии: {bestPenalty}");
+            Console.WriteLine("".PadRight(85, '-'));
+            Console.WriteLine($"Самое оптимальное значение критерия, как оказалось - нет: {bestPenalty_e_learning}");
+            Console.WriteLine($"Перестановка для этого критерия: {string.Join(", ", InSchedule)}");
+            Console.ReadKey();
         }
         static void ReadFile()
         {
@@ -145,13 +151,55 @@ namespace ConsoleApp2
                 (array[i], array[j]) = (array[j], array[i]);
             }
         }
-
         static int[] SelectParent(List<int[]> population)
+        {
+            int type_of_Select = random.Next(2);
+            if (type_of_Select == 0) return SelectParent_random(population);
+            else return SelectParent_tournament(population);
+        }
+        static int[] SelectParent_random(List<int[]> population)
         {
             return population[random.Next(population.Count)];
         }
+        
+        static int[] SelectParent_tournament(List<int[]> population)
+        {
+            if (tournamentSize > population.Count)
+            {
+                tournamentSize = population.Count;
+            }
+            // Список для хранения участников турнира
+            List<int[]> tournamentParticipants = new List<int[]>();
 
+            // Случайный выбор участников турнира
+            for (int i = 0; i < tournamentSize; i++)
+            {
+                int randomIndex = random.Next(population.Count);
+                tournamentParticipants.Add(population[randomIndex]);
+            }
+
+            // Выбор родителя с наилучшей пригодностью 
+            int[] bestParent = tournamentParticipants[0];
+            double bestFitness = CalculatePenalty(bestParent); 
+
+            foreach (var participant in tournamentParticipants)
+            {
+                double fitness = CalculatePenalty(participant);
+                if (fitness > bestFitness) 
+                {
+                    bestFitness = fitness;
+                    bestParent = participant;
+                }
+            }
+            return bestParent;
+        }
         static int[] Crossover(int[] parent1, int[] parent2)
+        {
+            int type_of_Crossover = random.Next(2);
+            if (type_of_Crossover == 0) return Crossover_onePoint(parent1, parent2);
+            else return Crossover_twoPoint(parent1, parent2);
+        }
+        static int[] Crossover_onePoint(int[] parent1, int[] parent2)
         {
             int length = parent1.Length;
             int[] child = new int[length];
@@ -175,8 +223,52 @@ namespace ConsoleApp2
 
             return child;
         }
+        static int[] Crossover_twoPoint(int[] parent1, int[] parent2)
+        {
+            int length = parent1.Length;
+            int[] child = new int[length];
+            bool[] taken = new bool[length];
+            for (int i = 0; i<child.Length; i++)
+            {
+                child[i] = -1;
+            }
+            int crossoverPoint1 = random.Next(1, length - 1);
+            int crossoverPoint2 = random.Next(1, length - 1);
+            if (crossoverPoint1 > crossoverPoint2)
+            {
+                (crossoverPoint1, crossoverPoint2) = (crossoverPoint2, crossoverPoint1);
+            }
+            for (int i = crossoverPoint1; i < crossoverPoint2; i++)
+            {
+                child[i] = parent1[i];
+                taken[parent1[i]] = true;
+            }
+            int index = 0;
+            for (int i = 0; i < length; i++)
+            {
+                if (!taken[parent2[i]])
+                {
+                    while (index < length && child[index] != -1) 
+                    {
+                        index++;
+                    }
+                    if (index < length)
+                    {
+                        child[index++] = parent2[i];
+                    }
+                }
+            }
+            return child;
+        }
 
         static void Mutate(int[] schedule)
+        {
+            int type_of_mutation = random.Next(2);
+            if (type_of_mutation == 0) Mutate_Point(schedule);
+            else Mutate_Inversion(schedule);
+
+        }
+        static void Mutate_Point(int[] schedule) // Точечная мутация 
         {
             for (int i = 0; i < schedule.Length; i++)
             {
@@ -187,6 +279,25 @@ namespace ConsoleApp2
                 }
             }
         }
+        static void Mutate_Inversion(int[] schedule) // инверсия
+        {
+            for (int i = 0; i < schedule.Length; i++)
+            {
+                if (random.NextDouble() < mutationRate)
+                {
+                    int startIndex = random.Next(schedule.Length);
+                    int endIndex = random.Next(schedule.Length);
+                    // Убедимся, что startIndex меньше endIndex
+                    if (startIndex > endIndex)
+                    {
+                        (startIndex, endIndex) = (endIndex, startIndex);
+                    }
+                    // Инвертируем порядок элементов между startIndex и endIndex
+                    Array.Reverse(schedule, startIndex, endIndex - startIndex + 1);
+                }
+            }
+        }
+        
         static int CalculatePenalty(int[] schedule)
         {
             int totalPenalty = 0;
