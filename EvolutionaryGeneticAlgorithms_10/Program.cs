@@ -10,34 +10,24 @@ namespace ConsoleApp2
 {
     internal class Program
     {
-        static int populationSize = 5000; //5000 или 1000
-        static int generations = 20; // 1000 или 50
-        static double mutationRate = 0.7;
+        static int populationSize = 200;
+        static int populationadd = 100;
+        static int generations = 100; 
+        static double mutationRate = 0.05;
         static int tournamentSize = 10;
+        static int maxend = 5;
         static Random random = new Random();
         public static List<List<int>> processingTimes = new List<List<int>>(); // Время обработки (15 заявок, 5 приборов)
         public static List<int> dueDates = new List<int>(); // Директивные сроки
         static List<int> penalty = new List<int>(); // Штрафы
 
+        // Лучшая перестановка: 13, 7, 12, 9, 3, 1, 4, 14, 15, 5, 10, 6, 8, 11, 2
+        // Значение целевой ф-ии: 1166
         static void Main(string[] args)
         {
             ReadFile();
             WriteConsole();
-            List<int[]> population = InitializePopulation();
-            for (int generation = 0; generation < generations; generation++)
-            {
-                List<int[]> newPopulation = new List<int[]>();
-                while (newPopulation.Count < populationSize)
-                {
-                    int[] parent1 = SelectParent(population);
-                    int[] parent2 = SelectParent(population);                                        
-                    int[] child = Crossover(parent1, parent2);
-                    Mutate(child);
-                    newPopulation.Add(child);
-                }
-                population = newPopulation;              
-            }
-            int[] bestSchedule = population.OrderBy(CalculatePenalty).First();
+            int[] bestSchedule = Generation();
             int[] InSchedule = { 12, 6, 11, 13, 8, 0, 1, 2, 3, 4, 5, 7, 9, 10, 14 };
             int bestPenalty = CalculatePenalty(bestSchedule);
             int bestPenalty_e_learning = CalculatePenalty(InSchedule);
@@ -51,11 +41,12 @@ namespace ConsoleApp2
             }
             Console.WriteLine($"\n\nЛучшая перестановка: {string.Join(", ", bestSchedule)}");
             Console.WriteLine($"Значение целевой ф-ии: {bestPenalty}");
-            Console.WriteLine("".PadRight(85, '-'));
-            Console.WriteLine($"Самое оптимальное значение критерия, как оказалось - нет: {bestPenalty_e_learning}");
-            Console.WriteLine($"Перестановка для этого критерия: {string.Join(", ", InSchedule)}");
+            Console.WriteLine("".PadRight(85, '-'));           
+            Console.WriteLine($"Перестановка из файла с ответами: {string.Join(", ", InSchedule)}");
+            Console.WriteLine($"Значение целевой функции для этой перестановки: {bestPenalty_e_learning}");
             Console.ReadKey();
         }
+       
         static void ReadFile()
         {
             int n = 0;
@@ -130,6 +121,48 @@ namespace ConsoleApp2
                 Console.Write(penalty[k] + " ");
             }
         }
+        static int[] Generation()
+        {
+            List<int[]> population = InitializePopulation().OrderBy(CalculatePenalty).ToList();
+            int minZnach = CalculatePenalty(population[0]);
+            int end_now = 0;
+            for (int generation = 0; generation < generations; generation++)
+            {
+                while (population.Count < populationSize + populationadd)
+                {
+                    int[] parent1 = SelectParent(population);
+                    int[] parent2 = SelectParent(population);
+                    int[] child = Crossover(parent1, parent2);
+                    Mutate(child);
+                    population.Add(child);
+                }
+                population = population.OrderBy(CalculatePenalty).Take(populationSize).ToList();
+                
+                int minZnach_now = CalculatePenalty(population[0]);
+
+                if (End(end_now, minZnach_now, minZnach) == 1)
+                    break;
+                else if (End(end_now, minZnach_now, minZnach) == 2)
+                {
+                    minZnach = minZnach_now;
+                    end_now = 0;
+                }
+                else end_now++;
+            }
+            int[] bestSchedule = population.OrderBy(CalculatePenalty).First();
+            return bestSchedule;
+        }
+        static int End(int end_now, int minZnach_now, int minZnach)
+        {
+            if (minZnach_now >= minZnach)
+            {
+                end_now++;
+                if (end_now == maxend) return 1;
+            }
+            else return 2;
+            return 3;
+
+        }
 
         static List<int[]> InitializePopulation()
         {
@@ -185,7 +218,7 @@ namespace ConsoleApp2
             foreach (var participant in tournamentParticipants)
             {
                 double fitness = CalculatePenalty(participant);
-                if (fitness > bestFitness) 
+                if (fitness < bestFitness) 
                 {
                     bestFitness = fitness;
                     bestParent = participant;
@@ -338,7 +371,5 @@ namespace ConsoleApp2
             }
             return totalPenalty;
         }
-
     }
-
 }
