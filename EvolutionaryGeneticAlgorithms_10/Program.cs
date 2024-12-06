@@ -10,12 +10,12 @@ namespace ConsoleApp2
 {
     internal class Program
     {
-        static int populationSize = 200;
-        static int populationadd = 100;
+        static int populationSize = 20;
+        static int populationadd = 50;
         static int generations = 100; 
         static double mutationRate = 0.05;
         static int tournamentSize = 10;
-        static int maxend = 5;
+        static int maxend = 10;
         static Random random = new Random();
         public static List<List<int>> processingTimes = new List<List<int>>(); // Время обработки (15 заявок, 5 приборов)
         public static List<int> dueDates = new List<int>(); // Директивные сроки
@@ -136,8 +136,8 @@ namespace ConsoleApp2
                     Mutate(child);
                     population.Add(child);
                 }
-                population = population.OrderBy(CalculatePenalty).Take(populationSize).ToList();
-                
+                population = Select(population);
+
                 int minZnach_now = CalculatePenalty(population[0]);
 
                 if (End(end_now, minZnach_now, minZnach) == 1)
@@ -152,6 +152,45 @@ namespace ConsoleApp2
             int[] bestSchedule = population.OrderBy(CalculatePenalty).First();
             return bestSchedule;
         }
+
+        private static List<int[]> Select(List<int[]> population)
+        {
+            int[] bestIndividual = population.OrderBy(CalculatePenalty).First();
+
+            var rankedPopulation = population.Except(new List<int[]> { bestIndividual }).OrderBy(CalculatePenalty).ToList();
+
+            int populationCount = rankedPopulation.Count;
+            List<double> rankFitness = new List<double>();
+            for (int i = 0; i < populationCount; i++)
+            {
+                rankFitness.Add(i + 1); 
+            }
+            double totalFitness = rankFitness.Sum();
+            List<double> probabilities = rankFitness.Select(x => x / totalFitness).ToList();
+            List<int[]> selectedPopulation = new List<int[]>(populationSize - 1); 
+            Random random = new Random();
+            // рулетка
+            for (int i = 0; i < populationSize - 1; i++)
+            {
+                double randomNumber = random.NextDouble();
+                double cumulativeProbability = 0;
+                int selectedIndex = -1;
+                for (int j = 0; j < populationCount; j++)
+                {
+                    cumulativeProbability += probabilities[j];
+                    if (randomNumber <= cumulativeProbability)
+                    {
+                        selectedIndex = j;
+                        break;
+                    }
+                }
+                selectedPopulation.Add(rankedPopulation[selectedIndex]);
+            }
+            selectedPopulation.Add(bestIndividual);
+
+            return selectedPopulation;
+        }
+
         static int End(int end_now, int minZnach_now, int minZnach)
         {
             if (minZnach_now >= minZnach)
@@ -201,7 +240,6 @@ namespace ConsoleApp2
             {
                 tournamentSize = population.Count;
             }
-            // Список для хранения участников турнира
             List<int[]> tournamentParticipants = new List<int[]>();
 
             // Случайный выбор участников турнира
@@ -211,7 +249,6 @@ namespace ConsoleApp2
                 tournamentParticipants.Add(population[randomIndex]);
             }
 
-            // Выбор родителя с наилучшей пригодностью 
             int[] bestParent = tournamentParticipants[0];
             double bestFitness = CalculatePenalty(bestParent); 
 
@@ -301,7 +338,7 @@ namespace ConsoleApp2
             else Mutate_Inversion(schedule);
 
         }
-        static void Mutate_Point(int[] schedule) // Точечная мутация 
+        static void Mutate_Point(int[] schedule)  
         {
             for (int i = 0; i < schedule.Length; i++)
             {
@@ -312,7 +349,7 @@ namespace ConsoleApp2
                 }
             }
         }
-        static void Mutate_Inversion(int[] schedule) // инверсия
+        static void Mutate_Inversion(int[] schedule)
         {
             for (int i = 0; i < schedule.Length; i++)
             {
@@ -320,12 +357,10 @@ namespace ConsoleApp2
                 {
                     int startIndex = random.Next(schedule.Length);
                     int endIndex = random.Next(schedule.Length);
-                    // Убедимся, что startIndex меньше endIndex
                     if (startIndex > endIndex)
                     {
                         (startIndex, endIndex) = (endIndex, startIndex);
                     }
-                    // Инвертируем порядок элементов между startIndex и endIndex
                     Array.Reverse(schedule, startIndex, endIndex - startIndex + 1);
                 }
             }
@@ -365,7 +400,6 @@ namespace ConsoleApp2
                     }
                 }
                 jobCompletionTime = pen[processingTimes.Count - 1][i].y;
-                // Проверяем, если текущее время превышает срок выполнения
                 totalPenalty += penalty[schedule[i]] * Math.Max(0, jobCompletionTime - dueDates[schedule[i]]);
                 
             }
