@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace ConsoleApp2
 {
@@ -137,7 +135,7 @@ namespace ConsoleApp2
                     population.Add(child);
                 }
                 population = Select(population);
-
+                population = population.OrderBy(CalculatePenalty).ToList();
                 int minZnach_now = CalculatePenalty(population[0]);
 
                 if (End(end_now, minZnach_now, minZnach) == 1)
@@ -169,7 +167,6 @@ namespace ConsoleApp2
             List<double> probabilities = rankFitness.Select(x => x / totalFitness).ToList();
             List<int[]> selectedPopulation = new List<int[]>(populationSize - 1); 
             Random random = new Random();
-            // рулетка
             for (int i = 0; i < populationSize - 1; i++)
             {
                 double randomNumber = random.NextDouble();
@@ -187,7 +184,6 @@ namespace ConsoleApp2
                 selectedPopulation.Add(rankedPopulation[selectedIndex]);
             }
             selectedPopulation.Add(bestIndividual);
-
             return selectedPopulation;
         }
 
@@ -241,8 +237,6 @@ namespace ConsoleApp2
                 tournamentSize = population.Count;
             }
             List<int[]> tournamentParticipants = new List<int[]>();
-
-            // Случайный выбор участников турнира
             for (int i = 0; i < tournamentSize; i++)
             {
                 int randomIndex = random.Next(population.Count);
@@ -285,10 +279,7 @@ namespace ConsoleApp2
             int index = crossoverPoint;
             for (int i = 0; i < length; i++)
             {
-                if (!taken[parent2[i]])
-                {
-                    child[index++] = parent2[i];
-                }
+                if (!taken[parent2[i]]) child[index++] = parent2[i];
             }
 
             return child;
@@ -401,7 +392,6 @@ namespace ConsoleApp2
                 }
                 jobCompletionTime = pen[processingTimes.Count - 1][i].y;
                 totalPenalty += penalty[schedule[i]] * Math.Max(0, jobCompletionTime - dueDates[schedule[i]]);
-                
             }
             return totalPenalty;
         }
